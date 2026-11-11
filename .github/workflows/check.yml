@@ -1,0 +1,33 @@
+name: Linux package check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  package-and-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install .
+      - name: Smoke-test desktop startup
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python - <<'PY'
+          from PySide6.QtCore import QTimer
+          from PySide6.QtWidgets import QApplication
+          from gpu_monitor import GpuMonitor
+
+          app = QApplication([])
+          window = GpuMonitor()
+          assert len(window.charts) == 4
+          window.theme_picker.setCurrentIndex(1)
+          assert window.theme_name == "light"
+          QTimer.singleShot(100, app.quit)
+          raise SystemExit(app.exec())
+          PY
